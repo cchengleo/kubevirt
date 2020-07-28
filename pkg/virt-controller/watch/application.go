@@ -73,6 +73,9 @@ const (
 	defaultControllerThreads = 3
 
 	defaultLauncherSubGid = 107
+
+	defaultPromCertFilePath = "/etc/virt-controller/certificates/tls.crt"
+	defaultPromKeyFilePath  = "/etc/virt-controller/certificates/tls.key"
 )
 
 var (
@@ -155,6 +158,9 @@ type VirtControllerApp struct {
 	evacuationControllerThreads       int
 	disruptionBudgetControllerThreads int
 	launcherSubGid                    int64
+
+	promCertFilePath string
+	promKeyFilePath  string
 }
 
 var _ service.Service = &VirtControllerApp{}
@@ -272,7 +278,7 @@ func (vca *VirtControllerApp) Run() {
 
 	stop := vca.ctx.Done()
 
-	promCertManager := bootstrap.NewFileCertificateManager("/etc/virt-controller/certificates")
+	promCertManager := bootstrap.NewFileCertificateManager(vca.promCertFilePath, vca.promKeyFilePath)
 	go promCertManager.Start()
 	promTLSConfig := webhooks.SetupPromTLS(promCertManager)
 
@@ -493,4 +499,10 @@ func (vca *VirtControllerApp) AddFlags() {
 
 	flag.Int64Var(&vca.launcherSubGid, "launcher-subgid", defaultLauncherSubGid,
 		"ID of subgroup to virt-launcher")
+
+	flag.StringVar(&vca.promCertFilePath, "prom-cert-file", defaultPromCertFilePath,
+		"Client certificate used to prove the identity of the virt-controller when it must call out Promethus during a request")
+
+	flag.StringVar(&vca.promKeyFilePath, "prom-key-file", defaultPromKeyFilePath,
+		"Private key for the client certificate used to prove the identity of the virt-controller when it must call out Promethus during a request")
 }
